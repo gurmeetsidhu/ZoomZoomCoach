@@ -118,5 +118,3 @@ def main():
 
 if __name__ == '__main__':
 	main()
-	
-git commit -m "test"
