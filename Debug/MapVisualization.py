@@ -43,6 +43,13 @@ def Output_Track_Limits(fname, x_inner, y_inner, x_outer, y_outer):
 	with open(fname, "wb") as of:
 		pkl.dump([[x_inner, y_inner],[x_outer, y_outer]], of)
 
+def Read_Main_CSV():
+	track = pd.read_csv("./mapLog.csv")
+	laps = track["mCurrentLap"].unique()
+	for lap in laps:
+		track.loc[track["mCurrentLap"]==lap]
+		filename = "./mapLog" + str(lap) + ".csv"
+		track.to_csv(filename, index=False)
 
 def main():
 
