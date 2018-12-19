@@ -3,6 +3,7 @@
 #include "sharedmemory.h"
 #include <fstream>
 #include <stdlib.h>
+#include <tlhelp32.h>
 using namespace std;
 
 // Used for this example
@@ -14,11 +15,28 @@ using namespace std;
 
 int main()
 {
+	//Check if OBS Studio is running. https://stackoverflow.com/questions/865152/how-can-i-get-a-process-handle-by-its-name-in-c
+	PROCESSENTRY32 entry;
+	entry.dwSize = sizeof(PROCESSENTRY32);
+	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+	bool ObsOpen = FALSE;
+	if (Process32First(snapshot, &entry) == TRUE) {
+		while (Process32Next(snapshot, &entry) == TRUE) {
+			if (stricmp(entry.szExeFile, "obs64.exe") == 0 || stricmp(entry.szExeFile, "obs32.exe")==0) {
+				ObsOpen = TRUE;
+			}
+		}
+	}
+	if (ObsOpen == FALSE) {
+		printf("OBS Studio not detected. Please open OBS studio if installed otherwise install. Ensure hotkeys are configured (Default F9/F10)\n");
+		return 1;
+	}
+
 	// Open the memory-mapped file
 	HANDLE fileHandle = OpenFileMapping(PAGE_READONLY, FALSE, MAP_OBJECT_NAME);
 	if (fileHandle == NULL)
 	{
-		printf("Could not open file mapping object (%d).\n", GetLastError());
+		printf("Could not open file mapping object (%d). Please ensure PC2 is launched and has data sharing activated in game.\n", GetLastError());
 		return 1;
 	}
 
@@ -37,6 +55,8 @@ int main()
 	if (sharedData->mVersion != SHARED_MEMORY_VERSION)
 	{
 		printf("Data version mismatch\n");
+		printf("Game Shared Data Version: (%d)\n", sharedData->mVersion);
+		printf("Code Shared Data Version: (%d)\n", SHARED_MEMORY_VERSION);
 		return 1;
 	}
 
@@ -55,7 +75,6 @@ int main()
 	WORD vkey = VK_F9;
 	WORD vkey2 = VK_F10;
 	bool recording = FALSE;
-	system("exec rm -r D:\\ScreenRecordings\\*");
 
 	while (true)
 	{
@@ -81,56 +100,28 @@ int main()
 		printf( "Sequence number increase %d, current index %d, previous index %d\n", indexChange, localCopy->mSequenceNumber, updateIndex );
 
 		const bool isValidParticipantIndex = localCopy->mViewedParticipantIndex != -1 && localCopy->mViewedParticipantIndex < localCopy->mNumParticipants && localCopy->mViewedParticipantIndex < STORED_PARTICIPANTS_MAX;
-		if ( isValidParticipantIndex && localCopy->mRaceState == 2 && localCopy->mGameState == 2)
+		if ( isValidParticipantIndex && localCopy->mRaceState == 2 && localCopy->mGameState == 2) //Ensure we are racing before starting recording
 		{
 			//If not currently recording start fraps recording
+			const ParticipantInfo& viewedParticipantInfo = localCopy->mParticipantInfo[sharedData->mViewedParticipantIndex];
 			if (recording == FALSE) {
 				ip.type = INPUT_KEYBOARD;
 				ip.ki.wScan = 0; // hardware scan code for key
 				ip.ki.time = 0;
 				ip.ki.dwExtraInfo = 0;
 				// Press the "A" key
-				ip.ki.wVk = 0x78; // virtual-key code for the "a" key
+				ip.ki.wVk = 0x78; // virtual-key code for the "F9" key
 				ip.ki.dwFlags = 0; // 0 for key press
 				SendInput(1, &ip, sizeof(INPUT));
-				Sleep(1000);
+				Sleep(50);
 				// Release the "A" key
 				ip.ki.dwFlags = KEYEVENTF_KEYUP; // KEYEVENTF_KEYUP for key release
 				SendInput(1, &ip, sizeof(INPUT));
-				printf("Pressed F9 \n");
 				recording = TRUE;
 			}
-			const ParticipantInfo& viewedParticipantInfo = localCopy->mParticipantInfo[sharedData->mViewedParticipantIndex];
-			//printf( "WorldPosition: [%f,%f,%f]\n", viewedParticipantInfo.mWorldPosition[0], viewedParticipantInfo.mWorldPosition[1], viewedParticipantInfo.mWorldPosition[2]);
-			//printf( "lap Distance = %f \n\n", viewedParticipantInfo.mCurrentLapDistance );
-
-			//printf("mCurrentTime: %f\n", localCopy->mCurrentTime);
-			//printf("mSpeed: %f\n", localCopy->mSpeed);
-			//printf("mRpm: %f\n", localCopy->mRpm);
-			//printf("mBrake: %f\n", localCopy->mBrake);
-			//printf("mThrottle: %f\n", localCopy->mThrottle);
-			//printf("mSteering: %f\n", localCopy->mSteering);
-			//printf("mGear: %d\n", localCopy->mGear);
-			//printf("mEngineTorque: %f\n", localCopy->mEngineTorque);
-
-			//printf("mOrientation: [%f,%f,%f]\n", localCopy->mOrientation[0], localCopy->mOrientation[1], localCopy->mOrientation[2]);
-			//printf("mLocalVelocity: [%f,%f,%f]\n", localCopy->mLocalVelocity[0], localCopy->mLocalVelocity[1], localCopy->mLocalVelocity[2]);
-			//printf("mWorldVelocity: [%f,%f,%f]\n", localCopy->mWorldVelocity[0], localCopy->mWorldVelocity[1], localCopy->mWorldVelocity[2]);
-			//printf("mAngularVelocity: [%f,%f,%f]\n", localCopy->mAngularVelocity[0], localCopy->mAngularVelocity[1], localCopy->mAngularVelocity[2]);
-			//printf("mLocalAcceleration: [%f,%f,%f]\n", localCopy->mLocalAcceleration[0], localCopy->mLocalAcceleration[1], localCopy->mLocalAcceleration[2]);
-			//printf("mWorldAcceleration: [%f,%f,%f]\n", localCopy->mWorldAcceleration[0], localCopy->mWorldAcceleration[1], localCopy->mWorldAcceleration[2]);
-			//printf("mTerrain: [%d,%d,%d,%d]\n", localCopy->mTerrain[0], localCopy->mTerrain[1], localCopy->mTerrain[2], localCopy->mTerrain[3]);
-			//printf("mTyreY: [%f,%f,%f,%f]\n", localCopy->mTyreY[0], localCopy->mTyreY[1], localCopy->mTyreY[2], localCopy->mTyreY[3]);
-			//printf("mTyreRPS: [%f,%f,%f,%f]\n", localCopy->mTyreRPS[0], localCopy->mTyreRPS[1], localCopy->mTyreRPS[2], localCopy->mTyreRPS[3]);
-			//printf("mTyreSlipSpeed: [%f,%f,%f,%f]\n", localCopy->mTyreSlipSpeed[0], localCopy->mTyreSlipSpeed[1], localCopy->mTyreSlipSpeed[2], localCopy->mTyreSlipSpeed[3]);
-			//printf("mTyreGrip: [%f,%f,%f,%f]\n", localCopy->mTyreGrip[0], localCopy->mTyreGrip[1], localCopy->mTyreGrip[2], localCopy->mTyreGrip[3]);
-			//printf("mTyreWear: [%f,%f,%f,%f]\n", localCopy->mTyreWear[0], localCopy->mTyreWear[1], localCopy->mTyreWear[2], localCopy->mTyreWear[3]);
-
-			//Used for mapping
-			//outFile << viewedParticipantInfo.mCurrentLap << "," << viewedParticipantInfo.mWorldPosition[0] << "," << viewedParticipantInfo.mWorldPosition[1] << "," << viewedParticipantInfo.mWorldPosition[2] << endl;
-
-			//Used for telemetry data
-			outFile << localCopy->mCarName << "," << localCopy->mTrackLocation << "," << localCopy->mTrackVariation << "," << viewedParticipantInfo.mCurrentLap << "," << viewedParticipantInfo.mWorldPosition[0] << "," << viewedParticipantInfo.mWorldPosition[1] << "," << viewedParticipantInfo.mWorldPosition[2] << "," << localCopy->mLocalAcceleration[0] << "," << localCopy->mLocalAcceleration[1] << "," << localCopy->mLocalAcceleration[2] << "," << localCopy->mSteering << "," << localCopy->mBrake << "," << localCopy->mThrottle << "," << localCopy->mTyreRPS[0] << "," << localCopy->mTyreRPS[1] << "," << localCopy->mTyreRPS[2] << "," << localCopy->mTyreRPS[3] << "," << localCopy->mWorldVelocity[0] << "," << localCopy->mWorldVelocity[1] << "," << localCopy->mWorldVelocity[2] << "," << localCopy->mOrientation[0] << "," << localCopy->mOrientation[1] << "," << localCopy->mOrientation[2] << "," << localCopy->mSpeed << "," << localCopy->mCurrentTime << "," << localCopy->mAngularVelocity[0] << "," << localCopy->mAngularVelocity[1] << "," << localCopy->mAngularVelocity[2] << endl;
+			else {
+				outFile << localCopy->mCarName << "," << localCopy->mTrackLocation << "," << localCopy->mTrackVariation << "," << viewedParticipantInfo.mCurrentLap << "," << viewedParticipantInfo.mWorldPosition[0] << "," << viewedParticipantInfo.mWorldPosition[1] << "," << viewedParticipantInfo.mWorldPosition[2] << "," << localCopy->mLocalAcceleration[0] << "," << localCopy->mLocalAcceleration[1] << "," << localCopy->mLocalAcceleration[2] << "," << localCopy->mSteering << "," << localCopy->mBrake << "," << localCopy->mThrottle << "," << localCopy->mTyreRPS[0] << "," << localCopy->mTyreRPS[1] << "," << localCopy->mTyreRPS[2] << "," << localCopy->mTyreRPS[3] << "," << localCopy->mWorldVelocity[0] << "," << localCopy->mWorldVelocity[1] << "," << localCopy->mWorldVelocity[2] << "," << localCopy->mOrientation[0] << "," << localCopy->mOrientation[1] << "," << localCopy->mOrientation[2] << "," << localCopy->mSpeed << "," << localCopy->mCurrentTime << "," << localCopy->mAngularVelocity[0] << "," << localCopy->mAngularVelocity[1] << "," << localCopy->mAngularVelocity[2] << endl;
+			}
 		}
 		else {
 			//If game state changes stop recording. Change recording back to False so it can be restarted once player returns.
@@ -140,7 +131,7 @@ int main()
 				ip.ki.time = 0;
 				ip.ki.dwExtraInfo = 0;
 				// Press the "A" key
-				ip.ki.wVk = 0x79; // virtual-key code for the "a" key
+				ip.ki.wVk = 0x79; // virtual-key code for the "F10" key
 				ip.ki.dwFlags = 0; // 0 for key press
 				SendInput(1, &ip, sizeof(INPUT));
 				Sleep(1000);

@@ -6,6 +6,7 @@ import numpy as np
 from scipy.interpolate import splprep, splev
 import pandas as pd
 import os
+import cv2
 
 #Take split track and convert it into an evenly spaced inner and outer limit
 def Spline_Track(segments, insidex, insidey, outsidex, outsidey):
@@ -52,7 +53,6 @@ def Read_Main_CSV():
 		track.to_csv(filename, index=False)
 
 def main():
-
 	with open("./backups/Laguna/Laguna-Splined.pkl", "rb") as rf:
 		laguna = pkl.load(rf)
 
@@ -71,6 +71,7 @@ def main():
 					raceSectors.append(maxIndex)
 
 		for i in range(0, len(raceSectors)-1):
+
 			SecData = LapData[raceSectors[i]:raceSectors[i+1]]
 			speedArr = SecData["mSpeed"]*3.6
 			timeArr = SecData["mCurrentTime"]
@@ -113,7 +114,6 @@ def main():
 			ax4.plot(timeArr, SecData["mBrake"], 'r')
 			ax4.plot(timeArr, SecData["mThrottle"], 'g')
 			ax5.plot(timeArr, SecData["mLocalAcceleration[0]"]/9.8)
-			#ax6.plot(video?????)
 			ax7.plot(timeArr, SecData["mOrientation[0]"], "r", alpha=0.6)
 			ax7.plot(timeArr, SecData["mOrientation[1]"], "g", alpha=0.6)
 			ax7.plot(timeArr, SecData["mOrientation[2]"], "b", alpha=0.6)
@@ -121,7 +121,30 @@ def main():
 			ax8.plot(timeArr, SecData["mAngularVelocity[1]"], "g", alpha=0.6)
 			ax8.plot(timeArr, SecData["mAngularVelocity[2]"], "b", alpha=0.6)
 			#ax1.plot(SecData["mWorldPosition[0]"], SecData["mWorldPosition[2]"])#, c=SecData["mSpeed"], cmap=plt.get_cmap('viridis'))
-			plt.show()
+			# plt.ion()
+
+
+			vid="D:/ScreenRecordings/2018-12-17 22-41-25.mp4"
+			if os.path.isfile(vid):
+				cap = cv2.VideoCapture(vid)
+				cap.open(vid)
+				err,img = cap.read()
+				gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+				img = ax6.imshow("mywindow", gray)
+				print ("The file '" + vid + " was loaded.")
+			else:
+				print ("The file '" + vid + "' does not exist.")
+
+			while cap.isOpened():
+				err,img = cap.read()
+				if err:
+					gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+					ax6.imshow("mywindow", gray)
+				if cv2.waitKey(10) & 0xFF == ord('q'):
+					break
+
+			cap.release()
+			cv2.destroyAllWindows()
 
 if __name__ == '__main__':
 	main()
