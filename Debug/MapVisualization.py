@@ -1,17 +1,19 @@
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.collections import LineCollection
+import argparse
 import pickle as pkl
 import numpy as np
 from scipy.interpolate import splprep, splev
 import pandas as pd
 import os
 import cv2
+import sys
 
 #Take split track and convert it into an evenly spaced inner and outer limit
-def Spline_Track(segments, insidex, insidey, outsidex, outsidey):
+def Spline_Track(track, segments, insidex, insidey, outsidex, outsidey):
 
-	insidex, insidey, outsidex, outsidey = laguna[0][0], laguna[0][1], laguna[1][0], laguna[1][1]
+	insidex, insidey, outsidex, outsidey = track[0][0], track[0][1], track[1][0], track[1][1]
 
 	idsx = np.arange(len(insidex))//25
 	resultx = np.bincount(idsx,insidex)/np.bincount(idsx)
@@ -53,14 +55,27 @@ def Read_Main_CSV():
 		track.to_csv(filename, index=False)
 
 def main():
-	with open("./backups/Laguna/Laguna-Splined.pkl", "rb") as rf:
-		laguna = pkl.load(rf)
+	parser = argparse.ArgumentParser(description="Welcome to ZoomZoom Coach. Use this function to process and analyze your laps after recording.")
+	parser.add_argument("-save", help="Save recorded lap into backup folders", dest="readFile", type=str)
+	parser.add_argument("-load", help="Load recorded lap/folder to analyze", dest="loadFile", type=str)
+	parser.add_argument("-track", help="Save recorded laps as inner/outer track limits respecively", dest="trackFile", type=str)
+	args=parser.parse_args()
 
-	for file in os.listdir("./backups/Laguna/BRZ/12-8-2018/"):
-		LapData = pd.read_csv("./backups/Laguna/BRZ/12-8-2018/" + file)
+	if (args.loadFile):
+		LapData = pd.read_csv(load)
+		trackLocation = LapData["mTrackLocation"].unique()
+
+		try:
+			with open("./backups/" + trackLocation + "/Track-Splined.pkl", "rb") as rf:
+				track = pkl.load(rf)
+		except:
+			print("Error: Couldn't find mapped track file. Please produce one for this track or ensure track file is correct (check track).")
+			os.system("pause")
+			sys.exit()
+
 		speedArr = LapData["mSpeed"]*3.6
 		timeArr = LapData["mCurrentTime"]
-		#Find how long 5 secs takes using refresh rate.
+		#Find how long 10 secs takes using refresh rate.
 		refreshwindow = np.argmax(timeArr>10)
 
 		raceSectors = [0]
@@ -97,8 +112,8 @@ def main():
 				graph.tick_params(axis="x", direction="in", pad=-10, labelsize=8)
 				graph.tick_params(axis="y", direction="in", pad=-22, gridOn=True, labelsize=8)
 
-			ax1.plot(laguna[0][0], laguna[0][1], 'b', alpha=0.2)
-			ax1.plot(laguna[1][0], laguna[1][1], 'b', alpha=0.2)
+			ax1.plot(track[0][0], track[0][1], 'b', alpha=0.2)
+			ax1.plot(track[1][0], track[1][1], 'b', alpha=0.2)
 			points = np.array([SecData["mWorldPosition[0]"], SecData["mWorldPosition[2]"]]).T.reshape(-1,1,2)
 			segments = np.concatenate([points[:-1],points[1:]], axis=1)
 			
