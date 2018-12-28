@@ -44,7 +44,7 @@ pip install -r requirements.txt
 
 1. Statup Project Cars 2 and ensure you are in game menu
 
-2. Open OBS Studio (Ensure hotkeys are set to F9/F10 for starting/stopping recording. Set video file destination to "ScreenRecordings" folder) 
+2. Open OBS Studio (Ensure hotkeys are set to F9/F10 for starting/stopping recording. Set video file destination to "ScreenRecordings" folder). You'll be asked to install for 'Streaming' or 'Recording'. This project preffers recording.
 
 3. Run data recorder
 ```
