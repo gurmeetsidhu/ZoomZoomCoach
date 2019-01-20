@@ -2,7 +2,7 @@
 
 In the pursuit of finding tenths, we eventually find ourselves at the point where we feel we cannot possibly have found more time in a corner. This tool will attempt to provide telemetry data layered with a recorded lap to provide you with the data and analysis necessary to find PBs or be more consistent around the track. See a sample video of an analysis below:
 
-(https://youtu.be/1-mLVrTc9hI)
+[![Watch the video](http://i.imgur.com/52eRIL2.jpg)](https://youtu.be/1-mLVrTc9hI)
 
 ## Getting Started
 
